@@ -1,35 +1,118 @@
-import { createElement, useState } from 'react';
-// import ReactLogo from './assets/react.svg?react';
-import reactLogo from './assets/react.svg';
-import './App.css';
-import { ShowDate } from './components/ShowDate';
+import { useState } from 'react';
+import styles from './App.module.css';
 
 function App() {
-	const [count, setCount] = useState(0);
+	const [result, setResult] = useState('0');
+	const [separator, setSeparator] = useState(0);
+	const [plusArray, setPlusArray] = useState([]);
+	const [minusArray, setMinusArray] = useState([]);
+	const [currentResult, setCurrentResult] = useState(0);
+	const [isCalculated, setIsCaliculated] = useState(false);
 
-	const logoImg = createElement('img', { src: reactLogo });
-	const logoContainer = createElement('div', { key: 'logoContainer' }, logoImg);
-	const title = createElement('h1', { key: 'title' }, 'Vite + React');
-	const button = createElement(
-		'button',
-		{
-			key: 'button',
-			onClick: () => setCount((count) => count + 1),
-		},
-		`count is ${count}`,
+	const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+	const isLastIsNumber =
+		result[result.length - 1] != '+' && result[result.length - 1] != '-';
+
+	const defineOperation = (num, operator) => {
+		// если операция первая, заносит число в начальное, иначе заносит число в массив
+		// слагаемых или вычитаемых соответственно знаку
+		if (!separator) setCurrentResult(num);
+		else if (operator === '+') setPlusArray([...plusArray, num]);
+		else if (operator === '-') setMinusArray([...minusArray, num]);
+	};
+	const countResult = (lastOperand, operator) => {
+		let lastCount = 0;
+		if (operator === '+' || separator === 0) lastCount += lastOperand;
+		if (operator === '-') lastCount -= lastOperand;
+		// считает стартовое число + все слагаемые - все вычитаемые +/- последняя операция
+		return (
+			currentResult +
+			plusArray.reduce((a, b) => a + b, 0) -
+			minusArray.reduce((a, b) => a + b, 0) +
+			lastCount
+		);
+	};
+
+	const resetState = (num = 0) => {
+		setSeparator(0);
+		setPlusArray([]);
+		setMinusArray([]);
+		setCurrentResult(num);
+		if (isCalculated) setIsCaliculated(false);
+	};
+	const numButtonHandler = (num) => {
+		if (Number(result) === 0 && num != 0) setResult('');
+		if (result === '0' && num === 0) setResult('0');
+		else setResult((prev) => (prev += num));
+		if (isCalculated) setIsCaliculated(false);
+	};
+
+	const plusHanlder = () => {
+		if (isLastIsNumber) {
+			setResult((prev) => (prev += '+'));
+			defineOperation(
+				Number(result.substring(separator, result.length)),
+				result[separator - 1],
+			);
+			setSeparator(result.length + 1);
+		}
+		if (isCalculated) setIsCaliculated(false);
+	};
+
+	const minusHandler = () => {
+		if (isLastIsNumber) {
+			setResult((prev) => (prev += '-'));
+			defineOperation(
+				Number(result.substring(separator, result.length)),
+				result[separator - 1],
+			);
+			setSeparator(result.length + 1);
+		}
+		if (isCalculated) setIsCaliculated(false);
+	};
+
+	const clearButtonHandler = () => {
+		setResult('0');
+		resetState();
+	};
+
+	const resultHandler = () => {
+		if (separator) {
+			let totalResult = countResult(
+				Number(result.substring(separator, result.length)),
+				result[separator - 1],
+			);
+			setResult(`${totalResult}`);
+			resetState(totalResult);
+			setIsCaliculated(true);
+		}
+	};
+	return (
+		<>
+			<div className={styles.container}>
+				<div className={styles.result}>
+					<p className={isCalculated ? styles.complete : ''}>{result}</p>
+				</div>
+				<div className={styles.buttonsContainer}>
+					<button onClick={clearButtonHandler}>C</button>
+					{numbers.map((number) => {
+						return (
+							<button
+								key={number}
+								className={styles.numButton}
+								onClick={() => numButtonHandler(number)}
+							>
+								{number}
+							</button>
+						);
+					})}
+					<button onClick={plusHanlder}>+</button>
+					<button onClick={minusHandler}>-</button>
+					<button onClick={resultHandler}>=</button>
+				</div>
+			</div>
+		</>
 	);
-
-	const p = createElement('p', { key: 'p' }, `Edit src/App.jsx and save to test HMR`);
-
-	const card = createElement('div', { className: 'card', key: 'card' }, [button, p]);
-	const container = createElement('div', null, [
-		logoContainer,
-		title,
-		card,
-		ShowDate(),
-	]);
-
-	return container;
 }
 
 export default App;
